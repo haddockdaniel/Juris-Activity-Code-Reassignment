@@ -237,8 +237,38 @@ namespace JurisUtilityBase
 
 
 
-                SQL = "update FeeSumByPrd set FSPActivityCd ='" + toActCode + "' where FSPActivityCd = '" + fromActCode + "'";  //as well
-                _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                SQL = "Select * from [FeeSumByPrd] where FSPActivityCd = '" + fromActCode + "'";
+                //one record at a time. If exists with same data but new act code, update and conbine. If not, update
+
+                fromArf = _jurisUtility.RecordsetFromSQL(SQL); // no matches so who cares
+                if (fromArf.Tables[0].Rows.Count > 0)
+                {
+                    foreach (DataRow dr in fromArf.Tables[0].Rows)
+                    {
+                        CompositKeyRecord record = new CompositKeyRecord();
+                        record = getFeeSumByPrdDataSet(dr);
+                        SQL = "Select * from [FeeSumByPrd] where FSPActivityCd = '" + toActCode + "' and [FSPMatter] =" + record.Matter + " and [FSPTkpr] = " + record.Tkpr + " and [FSPTaskCd] = '" + record.TaskCode + "' and FSPPrdYear = " + record.Year + " and FSPPrdNbr = " + record.Period;
+                        //one record at a time. If exists with same data but new act code, update and conbine. If not, update
+
+                        DataSet matches = _jurisUtility.RecordsetFromSQL(SQL);
+                        if (matches.Tables[0].Rows.Count > 0) //we need to combine because key already exists
+                        {
+                            //update record with correct task code
+                            SQL = "update FeeSumByPrd set [FSPWorkedHrsEntered] = Cast(Sum([FSPWorkedHrsEntered] + " + record.WorkedHrsEntered + ") as decimal(12,2)) ,[FSPNonBilHrsEntered] = Cast(Sum([FSPNonBilHrsEntered] + " + record.NonBilHrsEntered + ") as decimal(12,2)) ,[FSPBilHrsEntered] = Cast(Sum([FSPBilHrsEntered] + " + record.BilHrsEntered + ") as decimal(12,2)) ,[FSPFeeEnteredStdValue] = Cast(Sum([FSPFeeEnteredStdValue] + " + record.FeeEnteredStdValue + ") as decimal(12,2)) ,[FSPFeeEnteredActualValue] = Cast(Sum([FSPFeeEnteredActualValue] + " + record.FeeEnteredActualValue + ") as decimal(12,2)),[FSPWorkedHrsBld] = Cast(Sum([FSPWorkedHrsBld] + " + record.WorkHrsBld + ") as decimal(12,2)) ,[FSPHrsBilled] = Cast(Sum([FSPHrsBilled] + " + record.HrsBld + ") as decimal(12,2)) ,[FSPFeeBldStdValue] = Cast(Sum([FSPFeeBldStdValue] + " + record.StdValueBld + ") as decimal(12,2)) ,[FSPFeeBldActualValue] = Cast(Sum([FSPFeeBldActualValue] + " + record.ActualValueBld + ") as decimal(12,2)) ,[FSPFeeBldActualAmt] = Cast(Sum([FSPFeeBldActualAmt] + " + record.ActualAmtBld + ") as decimal(12,2)) ,[FSPFeeReceived] = Cast(Sum([FSPFeeReceived] + " + record.Rcvd + ") as decimal(12,2)) ,[FSPFeeAdjusted] = Cast(Sum([FSPFeeAdjusted] + " + record.Adj + ") as decimal(12,2)) where FSPActivityCd = '" + fromActCode + "' and [FSPMatter] =" + record.Matter + " and [FSPTkpr] = " + record.Tkpr + " and [FSPTaskCd] = '" + record.TaskCode + "' and FSPPrdYear = " + record.Year + " and FSPPrdNbr = " + record.Period;
+                            _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                            //delete record with old task code
+                            SQL = "delete from FeeSumByPrd where FSPActivityCd = '" + fromActCode + "' and [FSPMatter] =" + record.Matter + " and [FSPTkpr] = " + record.Tkpr + " and [FSPTaskCd] = '" + record.TaskCode + "' and FSPPrdYear = " + record.Year + " and FSPPrdNbr = " + record.Period;
+                            _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                        }
+                        else //no match so we can just update
+                        {
+                            SQL = "update FeeSumByPrd set FSPActivityCdd ='" + toActCode + "' where FSPActivityCd = '" + fromActCode + "' and [FSPMatter] =" + record.Matter + " and [FSPTkpr] = " + record.Tkpr + " and [FSPTaskCd] = '" + record.TaskCode + "' and FSPPrdYear = " + record.Year + " and FSPPrdNbr = " + record.Period;
+                            _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                        }
+
+                    }
+                }
+                fromArf.Clear();
                 UpdateStatus("Updating Matter Fee Budget...", 4, 8);
 
 
@@ -303,6 +333,30 @@ namespace JurisUtilityBase
             rec.Record = dr["CRFRecNbr"].ToString().Trim();
             rec.PrePost = Double.Parse(dr["CRFPrePost"].ToString().Trim());
             rec.Amount = Double.Parse(dr["CRFAmount"].ToString().Trim());
+            return rec;
+        }
+
+        private CompositKeyRecord getFeeSumByPrdDataSet(DataRow dr)
+        {
+            CompositKeyRecord rec = new CompositKeyRecord();
+            rec.Year = dr["FSPPrdYear"].ToString().Trim();
+            rec.Matter = dr["FSPMatter"].ToString().Trim();
+            rec.Tkpr = dr["FSPTkpr"].ToString().Trim();
+            rec.TaskCode = dr["FSPTaskCd"].ToString().Trim();
+            rec.ActCode = dr["FSPActivityCd"].ToString().Trim();
+            rec.Period = dr["FSPPrdNbr"].ToString().Trim();
+            rec.WorkHrsBld = Double.Parse(dr["FSPWorkedHrsBld"].ToString().Trim());
+            rec.HrsBld = Double.Parse(dr["FSPHrsBilled"].ToString().Trim());
+            rec.StdValueBld = Double.Parse(dr["FSPFeeBldStdValue"].ToString().Trim());
+            rec.ActualValueBld = Double.Parse(dr["FSPFeeBldActualValue"].ToString().Trim());
+            rec.ActualAmtBld = Double.Parse(dr["FSPFeeBldActualAmt"].ToString().Trim());
+            rec.Rcvd = Double.Parse(dr["FSPFeeReceived"].ToString().Trim());
+            rec.Adj = Double.Parse(dr["FSPFeeAdjusted"].ToString().Trim());
+            rec.WorkedHrsEntered = Double.Parse(dr["FSPWorkedHrsEntered"].ToString().Trim());
+            rec.NonBilHrsEntered = Double.Parse(dr["FSPNonBilHrsEntered"].ToString().Trim());
+            rec.BilHrsEntered = Double.Parse(dr["FSPBilHrsEntered"].ToString().Trim());
+            rec.FeeEnteredStdValue = Double.Parse(dr["FSPFeeEnteredStdValue"].ToString().Trim());
+            rec.FeeEnteredActualValue = Double.Parse(dr["FSPFeeEnteredActualValue"].ToString().Trim());
             return rec;
         }
 
