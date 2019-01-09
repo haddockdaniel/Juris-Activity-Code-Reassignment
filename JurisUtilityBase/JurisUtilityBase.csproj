@@ -159,6 +159,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CompositKeyRecord.cs" />
     <Compile Include="JurisUtility.cs" />
     <Compile Include="PrinterDialog.cs">
       <SubType>Form</SubType>
