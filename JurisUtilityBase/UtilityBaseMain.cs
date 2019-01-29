@@ -302,14 +302,22 @@ namespace JurisUtilityBase
                 UpdateStatus("Updating Matter Fee Budget...", 4, 8);
 
 
+                DateTime dt = DateTime.Today;
+
 
 
                 SQL = "update MatterFeeBudget set MFBActivityCode ='" + toActCode + "' where MFBActivityCode = '" + fromActCode + "'";
                 _jurisUtility.ExecuteNonQueryCommand(0, SQL);
                 UpdateStatus("Updating Time Batch Detail...", 5, 8);
 
+                //add note to narrative about the update
+                SQL = "update TimeBatchDetail set TBDNarrative = cast(TBDNarrative as nvarchar(max)) + cast( char(13) + char(10) as nvarchar(max)) + cast('Updated code from " + fromActCode + " to " + toActCode + " on " + dt.ToString("MM/dd/yyyy") + "' as varchar(max)) where TBDActivityCd = '" + fromActCode + "'";
+                _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+
                 SQL = "update TimeBatchDetail set TBDActivityCd ='" + toActCode + "' where TBDActivityCd = '" + fromActCode + "'";
                 _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+
+
                 UpdateStatus("Updating Time Entries...", 6, 8);
 
                 SQL = "update TimeEntry set ActivityCode ='" + toActCode + "' where ActivityCode = '" + fromActCode + "'"; 
