@@ -211,6 +211,12 @@ namespace JurisUtilityBase
                 SQL = "delete from ActivityCodeFavorite where Code ='" + fromActCode + "'";
                 _jurisUtility.ExecuteNonQueryCommand(0, SQL);
 
+                SQL = "delete from MobilityTokens where ActivityCode ='" + fromActCode + "'";
+                _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+
+                SQL = "delete from MobilityTemplates where ActivityCode ='" + fromActCode + "'";
+                _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+
                 UpdateStatus("Updating Cash Rec Fee Alloc...", 2, 8);
 
 
@@ -328,13 +334,18 @@ namespace JurisUtilityBase
                 _jurisUtility.ExecuteNonQueryCommand(0, SQL);
                 UpdateStatus("All tables updated.", 8, 8);
 
-                //log tables?
-                //xref?
-                //fave and most recent?
+                DialogResult dr1 = MessageBox.Show("Would you like to delete the old Activity Code?", "Deletion Prompt", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (dr1 == System.Windows.Forms.DialogResult.Yes)
+                {
+                    SQL = "delete from ActivityCode where ActyCdCode = '" + fromActCode + "'";
+                    _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                }
 
                 MessageBox.Show("The process is complete", "Finished", MessageBoxButtons.OK, MessageBoxIcon.None);
                 toActCode = "";
                 fromActCode = "";
+                cbFrom.SelectedIndex = -1;
+                cbTo.SelectedIndex = -1;
                 button1.Enabled = false;
             }
         }
