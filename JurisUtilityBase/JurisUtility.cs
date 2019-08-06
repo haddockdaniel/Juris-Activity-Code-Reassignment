@@ -177,8 +177,10 @@ namespace JurisUtilityBase
 
         public int ExecuteNonQueryCommand(int command, string sql)
         {
-            _commands[command].CommandText = sql;
-            return _commands[command].ExecuteNonQuery();
+
+                _commands[command].CommandText = sql;
+                return _commands[command].ExecuteNonQuery();
+
         }
 
         #endregion
